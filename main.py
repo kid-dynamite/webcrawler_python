@@ -1,7 +1,15 @@
-from crawl import normalize_url
+from crawl import normalize_url, get_heading_from_html, get_first_paragraph_from_html
 
-#def main():
-    #print(normalize_url("https://sub.domain.boot.dev/courses"))
+def main():
+    html = """<html><body>
+        <p>Outside paragraph.</p>
+        <main>
+            <p>Main paragraph.</p>
+            <p>Main paragraph._1</p>
+            <p>Main paragraph._2</p>
+        </main>
+    </body></html>"""
+    print(get_first_paragraph_from_html(html))
 
 
 if __name__ == "__main__":
