@@ -1,5 +1,5 @@
 import unittest
-from crawl import normalize_url, get_heading_from_html, get_first_paragraph_from_html
+from crawl import normalize_url, get_heading_from_html, get_first_paragraph_from_html, get_urls_from_html, get_images_from_html
 
 
 class TestCrawl(unittest.TestCase):
@@ -113,9 +113,113 @@ class TestCrawl(unittest.TestCase):
         expected = ""
         self.assertEqual(actual, expected)
 
-    
 
+
+class TestHTMLChunks(unittest.TestCase):
+    # --- Tests for get_urls_from_html ---
+
+    def test_get_urls_from_html_no_links(self):
+        input_url = "https://crawler-test.com"
+        # Das HTML enthält Text und Überschriften, aber kein <a>-Tag
+        input_body = '<html><body><h1>Willkommen</h1><p>Hier gibt es keine Links.</p></body></html>'
+        
+        actual = get_urls_from_html(input_body, input_url)
+        expected = []
+        
+        self.assertEqual(actual, expected)
     
+    def test_get_urls_from_html_absolute_1(self):
+        """Test 1: Erkennt absolute Links korrekt."""
+        input_url = "https://crawler-test.com"
+        input_body = '<html><body><a href="https://crawler-test.com"><span>About Us</span></a></body></html>'
+        
+        actual = get_urls_from_html(input_body, input_url)
+        expected = ["https://crawler-test.com"]
+        self.assertEqual(actual, expected)
+
+    def test_get_urls_from_html_absolute_2(self):
+        """Test 1: Erkennt absolute Links korrekt."""
+        input_url = "https://crawler-test.com"
+        input_body = '<html><body><a href="https://crawler.com"><span>About Us</span></a></body></html>'
+        
+        actual = get_urls_from_html(input_body, input_url)
+        expected = ["https://crawler.com"]
+        self.assertEqual(actual, expected)
+
+    def test_get_urls_from_html_relative(self):
+        """Test 2: Wandelt relative Links in absolute Links um."""
+        input_url = "https://blog.boot.dev"
+        input_body = '<html><body><a href="/posts/welcome">Read Post</a></body></html>'
+        
+        actual = get_urls_from_html(input_body, input_url)
+        expected = ["https://blog.boot.dev/posts/welcome"]
+        self.assertEqual(actual, expected)
+
+    def test_get_urls_from_html_multiple_and_missing(self):
+        """Test 3: Findet mehrere Links und ignoriert a-Tags ohne href."""
+        input_url = "https://mysite.org"
+        input_body = '''
+        <div>
+            <a href="https://external.com">External</a>
+            <a href="../contact">Contact</a>
+            <a>Anchor without href</a>
+        </div>
+        '''
+        
+        actual = get_urls_from_html(input_body, input_url)
+        # ../contact aufgelöst gegen https://mysite.org ergibt https://mysite.org
+        expected = ["https://external.com", "https://mysite.org/contact"]
+        self.assertEqual(actual, expected)
+
+
+    # ==========================================
+    # TESTS FÜR get_images_from_html
+    # ==========================================
+
+    #def test_get_images_from_html_relative(self):
+        input_url = "https://crawler-test.com"
+        input_body = '<html><body><img src="/logo.png" alt="Logo"></body></html>'
+        actual = get_images_from_html(input_body, input_url)
+        expected = ["https://crawler-test.com/logo.png"]
+        self.assertEqual(actual, expected)
+
+    #def test_get_images_from_html_relative_dir(self):
+        """Test 1: Wandelt relative Bildpfade in absolute um."""
+        input_url = "https://crawler-test.com"
+        input_body = '<html><body><img src="/assets/logo.png" alt="Logo"></body></html>'
+        
+        actual = get_images_from_html(input_body, input_url)
+        expected = ["https://crawler-test.com/assets/logo.png"]
+        self.assertEqual(actual, expected)
+
+    def test_get_images_from_html_absolute(self):
+        """Test 2: Behält bereits absolute Bild-URLs bei."""
+        input_url = "https://crawler-test.com"
+        input_body = '<html><body><img src="https://boot.dev"></body></html>'
+        
+        actual = get_images_from_html(input_body, input_url)
+        expected = ["https://boot.dev"]
+        self.assertEqual(actual, expected)
+
+    def test_get_images_from_html_absolute(self):
+        """Test 2: Behält bereits absolute Bild-URLs bei."""
+        input_url = "https://shop.boot.dev"
+        input_body = '<html><body><img src="https://boot.dev"></body></html>'
+        
+        actual = get_images_from_html(input_body, input_url)
+        expected = ["https://boot.dev"]
+        self.assertEqual(actual, expected)
+
+    def test_get_images_from_html_missing_src(self):
+        """Test 3: Ignoriert img-Tags, bei denen das src-Attribut komplett fehlt."""
+        input_url = "https://batman.net"
+        input_body = '<html><body><img alt="Broken Image Tag"><img src="pic.jpg"></body></html>'
+        
+        actual = get_images_from_html(input_body, input_url)
+        expected = ["https://batman.net/pic.jpg"]
+        self.assertEqual(actual, expected)
+
+
 
 if __name__ == "__main__":
     unittest.main()
